@@ -1,31 +1,29 @@
 # Brilla
 
-Prototipo de diseño en HTML/CSS/JavaScript. Sin Supabase configurado, perfiles y diseños se guardan en el navegador. Con Supabase configurado, la interfaz usa Auth y sincroniza los proyectos con una tabla privada por cuenta.
+Brilla es una app web de diseño en HTML, CSS y JavaScript. Incluye búsqueda y categorías de plantillas, vista previa en un panel lateral, editor de diapositivas y diseños movibles. Los proyectos, páginas, favoritos e imágenes se guardan en `localStorage` en el navegador actual; por ahora no se sincronizan entre dispositivos.
 
 ## Abrir en el navegador
 
-Haz doble clic en `abrir-brilla.bat`. Se abrirá Brilla en el navegador predeterminado de Windows; sirve en Chrome, Opera y Edge. Mantén abierta la ventana del servidor mientras trabajas y presiona Ctrl+C en esa ventana para detenerlo. Si Windows tiene otro navegador predeterminado, copia la dirección local que aparece en la ventana del servidor y ábrela en el navegador que prefieras.
+Haz doble clic en `abrir-brilla.bat`. Se abrirá Brilla en Chrome, Opera, Edge o el navegador predeterminado. Mantén abierta la ventana del servidor mientras trabajas y presiona Ctrl+C en esa ventana para detenerlo. El servidor local admite rutas como `/categoria/presentacion` y `/editor/[id]`.
 
 ## Publicar en GitHub Pages
 
-La carpeta ya contiene un flujo de publicación en `.github/workflows/static.yml`. Para activarlo, crea un repositorio GitHub y sube el contenido de esta carpeta a la rama `main`. En **Settings → Secrets and variables → Actions**, agrega `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. En **Settings → Pages**, elige **GitHub Actions** como fuente. Cada actualización de `main` publicará el sitio; GitHub muestra la dirección final en la ejecución del flujo. Después añade esa dirección a **Authentication → URL Configuration** en Supabase. La clave se inserta desde los secretos al publicar; `config.local.js` permanece fuera de Git.
+Sube el contenido de esta carpeta a la rama `main`. El flujo `.github/workflows/pages.yml` publica el sitio al recibir cada cambio. En **Settings → Secrets and variables → Actions**, configura `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` para usar registro e inicio de sesión por correo. El flujo genera `supabase/config.local.js` durante la publicación; ese archivo nunca se guarda en Git. Si solo quieres probar el editor local, puedes dejar esos secretos sin configurar y usar el modo local.
 
-## Preparar Supabase
+En **Settings → Pages**, selecciona **GitHub Actions** como fuente. Añade la dirección publicada a **Supabase → Authentication → URL Configuration → Redirect URLs** para que los enlaces de confirmación y recuperación vuelvan a Brilla. `404.html` conserva las rutas de categoría y del editor al abrirlas directamente.
 
-1. Crea un proyecto en [Supabase](https://supabase.com/).
-2. Abre **SQL Editor** y ejecuta `supabase/schema.sql`.
-3. En **Project Settings → API Keys**, copia la URL del proyecto y su clave `publishable`.
-4. Copia `supabase/config.js` como `supabase/config.local.js` y completa los dos valores. El archivo local está excluido de Git; nunca incluyas una clave `service_role`.
-5. Sirve la carpeta con VS Code Live Server o un host web. No abras el HTML como archivo `file://` para probar el acceso.
-6. Añade el dominio de prueba en **Authentication → URL Configuration → Redirect URLs** y configura el envío de confirmación de correo. Para el servidor local de Brilla, permite `http://127.0.0.1:5187/**` hasta `http://127.0.0.1:5199/**`; el puerto elegido depende de cuáles estén libres. Añade también el dominio publicado. Estos permisos permiten que el enlace de recuperación vuelva a Brilla.
+## Correo de registro y recuperación
 
-### Correo para usuarios
+El SMTP de prueba de Supabase tiene límites y no está pensado para enviar a todos los usuarios. Para habilitar correos de forma amplia, configura un proveedor SMTP en **Authentication → SMTP Settings**. Mantén host, usuario, contraseña y remitente en Supabase, nunca en el repositorio. Consulta la [guía oficial de SMTP personalizado](https://supabase.com/docs/guides/auth/auth-smtp).
 
-El SMTP de prueba de Supabase sirve para probar flujos y tiene límites; no es el envío recomendado para usuarios reales. Para habilitar confirmaciones y recuperación de contraseña para todos, configura un proveedor SMTP en **Authentication → SMTP Settings** en Supabase. Introduce allí el host, puerto, usuario, contraseña y remitente que proporcione el servicio de correo. Mantén esos datos en Supabase y no los pongas en `config.local.js` ni en Git. [Guía oficial de SMTP personalizado](https://supabase.com/docs/guides/auth/auth-smtp).
+## Guardado local
 
-La tabla `designs` y el bucket privado `design-assets` usan políticas para que cada cuenta solo pueda leer y modificar sus propios datos. Vuelve a ejecutar `supabase/schema.sql` para crear el bucket y sus políticas. Al iniciar sesión, los diseños locales se importan si la cuenta cloud aún no tiene proyectos. Las imágenes se comprimen y se guardan en Storage; el documento conserva solo su ruta.
+Los diseños se guardan en el navegador donde se crearon. Exporta PNG, JPG, PDF o una copia `.brilla.json` desde el editor si necesitas conservarlos o moverlos. Borrar los datos del navegador también puede borrar los proyectos locales.
 
-## Estado actual
+## Funciones incluidas
 
-El editor incluye texto, formas e imágenes movibles y redimensionables, capas, controles de fuente/alineación/color, historial, plantillas adicionales y exportación a PNG, JPG y PDF. La interfaz incluye alta e inicio de sesión por correo y contraseña, recuperación de contraseña por correo, carga y sincronización de diseños, perfil, cierre de sesión y guardado privado de imágenes cuando la configuración está completa. El modo local sigue disponible sin credenciales. Para publicar el sitio todavía falta aplicar el SQL actualizado, comprobar el flujo con tu proyecto y desplegarlo en un dominio.
-
+- Inicio con búsqueda, chips y formatos: presentaciones, documentos, videos, publicaciones, historias, volantes y documentos de varias páginas.
+- Doce plantillas de presentación con portada, páginas de contenido y cierre.
+- Categoría `/categoria/presentacion`, filtros de estilo e idioma, vista previa, carrusel de páginas y contenido similar. El editor tiene una ruta directa `/editor/[id]`.
+- Editor con texto, tipografías Poppins, Inter y Montserrat, doodles separados, formas, imágenes, colores, undo/redo, páginas adicionales y exportaciones.
+- Perfil, favoritos, duplicación y eliminación de proyectos.

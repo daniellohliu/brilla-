@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Abriendo Brilla…</title></head><body><p>Abriendo Brilla…</p><script>
+  const categoryAt = location.pathname.indexOf('/categoria/');
+  let base = '';
+  let route = '/';
+  if (categoryAt >= 0) {
+    base = categoryAt > 0 ? location.pathname.slice(0, categoryAt) : '';
+    route = location.pathname.slice(categoryAt) + location.search + location.hash;
+  } else {
+    const segments = location.pathname.split('/').filter(Boolean);
+    if (segments.length > 1 && segments[0] !== 'editor') {
+      base = '/' + segments[0];
+      route = '/' + segments.slice(1).join('/') + location.search + location.hash;
+    } else if (segments[0] === 'editor') {
+      route = location.pathname + location.search + location.hash;
+    }
+  }
+  location.replace(base + '/?route=' + encodeURIComponent(route));
+</script></body></html>

@@ -47,6 +47,9 @@ try {
             $relative = [Uri]::UnescapeDataString($context.Request.Url.AbsolutePath.TrimStart('/'))
             if ([string]::IsNullOrWhiteSpace($relative)) { $relative = 'index.html' }
             $file = [IO.Path]::GetFullPath([IO.Path]::Combine($root, $relative))
+            if (-not [IO.File]::Exists($file) -and [string]::IsNullOrEmpty([IO.Path]::GetExtension($relative))) {
+                $file = [IO.Path]::Combine($root, 'index.html')
+            }
             $allowedPrefix = $root.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 
             if (-not $file.StartsWith($allowedPrefix, [StringComparison]::OrdinalIgnoreCase) -or -not [IO.File]::Exists($file)) {
