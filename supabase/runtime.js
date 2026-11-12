@@ -56,7 +56,7 @@
   let returnToLoginAfterRecovery = false;
   if (oldNote) oldNote.textContent = cloud
     ? "Elige una contraseña para Brilla; no uses la de tu correo."
-    : "Modo local de demostración. Conecta Supabase para usar cuentas reales.";
+    : "El acceso requiere una sesión de Supabase. Configura el proyecto para crear o iniciar sesión.";
 
   window.setAuthMode = function (next) {
     mode = next;
@@ -69,7 +69,7 @@
     password.autocomplete = signup ? "new-password" : "current-password";
     if (oldNote) oldNote.textContent = cloud
       ? (signup ? "Esta contraseña es para Brilla, no para Gmail. Te enviaremos un correo para confirmar." : "Usa el correo y la contraseña que elegiste para Brilla.")
-      : "Modo local de demostración. Conecta Supabase para usar cuentas reales.";
+      : "El acceso requiere una sesión de Supabase. Configura el proyecto para crear o iniciar sesión.";
   };
   const originalShowLogin = window.showLogin;
   window.showLogin = function () {
@@ -78,6 +78,7 @@
     window.setAuthMode("signup");
   };
   window.closeLogin = function () {
+    if (document.body.classList.contains("auth-locked")) return notify("Inicia sesión o crea una cuenta para entrar a Brilla.");
     document.getElementById("login").classList.remove("show");
     recoveryOverlay.classList.remove("show");
     document.body.classList.remove("auth-open");
@@ -87,6 +88,11 @@
   recoveryOverlay.querySelector("#recoveryClose").onclick = () => {
     recoveryOverlay.classList.remove("show");
     if (returnToLoginAfterRecovery) document.getElementById("login").classList.add("show");
+    else if (document.body.classList.contains("auth-locked")) {
+      document.getElementById("login").classList.add("show");
+      document.body.classList.add("auth-open");
+      window.setAuthMode("signin");
+    }
     else {
       document.body.classList.remove("auth-open");
       window.scrollTo(0, 0);
@@ -204,6 +210,7 @@
   window.enter = async function () {
     const n = nameInput.value.trim(), e = email.value.trim(), pw = password.value;
     if (!e.includes("@") || pw.length < 8) return notify("Escribe un correo válido y una contraseña de 8 caracteres.");
+    if (!cloud) return notify("Brilla necesita Supabase para registrar e iniciar sesión. Configura SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY.");
     if (cloud) {
       const signup = mode === "signup";
       if (signup && !n) return notify("Escribe tu nombre.");
@@ -236,12 +243,14 @@
   };
 
   window.start = async function (knownUser) {
+    if (!cloud) { window.lockBrillaAuth(); return; }
     if (cloud) {
       let u = knownUser;
       if (!u) { const result = await cloud.auth.getUser(); u = result.data.user; }
-      if (!u) return;
+      if (!u) { window.lockBrillaAuth(); return; }
       cloudUser = u;
-      user = { name: u.user_metadata.full_name || u.email.split("@")[0], email: u.email };
+      const savedProfile = read(UK, {});
+      user = { name: u.user_metadata.full_name || u.email.split("@")[0], email: u.email, bio: u.user_metadata.bio || savedProfile.bio || "", avatar: savedProfile.avatar || u.user_metadata.avatar_url || "" };
       const localProjects = read(PK, []);
       const { data, error } = await cloud.from("designs").select("*").order("updated_at", { ascending: false });
       if (error) { projects = localProjects; notify("No se pudieron cargar los diseños. Revisa schema.sql y las políticas RLS."); }
@@ -258,15 +267,11 @@
       }));
       cacheProjects();
       localStorage.setItem(UK, JSON.stringify(user));
-    } else {
-      user = read(UK, null);
-      projects = read(PK, []);
     }
-    if (!user) return;
+    if (!user) { window.lockBrillaAuth(); return; }
     document.getElementById("landing").style.display = "none";
-    document.getElementById("login").classList.remove("show");
-    if (!recoverySession) document.body.classList.remove("auth-open");
-    document.getElementById("app").style.display = "block";
+    window.unlockBrillaAuth();
+    if (recoverySession) document.body.classList.add("auth-open");
     document.getElementById("userbtn").textContent = "◉ " + user.name.split(" ")[0];
     navigate("home");
   };
@@ -353,19 +358,19 @@
     if (cloud) await cloud.auth.signOut();
     cloudUser = null;
     localStorage.removeItem(UK);
-    document.getElementById("app").style.display = "none";
-    document.getElementById("landing").style.display = "block";
-    document.body.classList.remove("auth-open");
+    window.lockBrillaAuth();
   };
 
   window.saveProfile = async function () {
     const n = document.getElementById("profileName").value.trim();
+    const bio = document.getElementById("profileBio")?.value.trim() || "";
     if (!n) return notify("Escribe tu nombre.");
     if (cloud) {
-      const { error } = await cloud.auth.updateUser({ data: { full_name: n } });
+      const { error } = await cloud.auth.updateUser({ data: { full_name: n, bio } });
       if (error) return notify("No se pudo actualizar el perfil.");
     }
     user.name = n;
+    user.bio = bio;
     localStorage.setItem(UK, JSON.stringify(user));
     document.getElementById("userbtn").textContent = "◉ " + n.split(" ")[0];
     navigate("profile");
@@ -376,15 +381,22 @@
     cloud.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         recoverySession = true;
+        window.lockBrillaAuth();
         document.body.classList.add("auth-open");
         recoveryRequest.hidden = true;
         recoveryUpdate.hidden = false;
         document.getElementById("login").classList.remove("show");
         recoveryOverlay.classList.add("show");
+      } else if (event === "SIGNED_OUT") {
+        user = null;
+        window.lockBrillaAuth();
       }
     });
-    cloud.auth.getSession().then(({ data }) => { if (data.session && !recoverySession) window.start(data.session.user); });
+    cloud.auth.getSession().then(({ data, error }) => {
+      if (error || !data.session) window.lockBrillaAuth();
+      else if (!recoverySession) window.start(data.session.user);
+    }).catch(() => window.lockBrillaAuth());
   }
-  else if (read(UK, null)) window.start();
+  else window.lockBrillaAuth();
   window.setAuthMode("signup");
 })();
