@@ -8,7 +8,7 @@ Haz doble clic en `abrir-brilla.bat`. Se abrirá Brilla en el navegador predeter
 
 ## Publicar en GitHub Pages
 
-La carpeta ya contiene un flujo de publicación en `.github/workflows/pages.yml`. Para activarlo, crea un repositorio GitHub y sube el contenido de esta carpeta a la rama `main`. En **Settings → Secrets and variables → Actions**, agrega `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. En **Settings → Pages**, elige **GitHub Actions** como fuente. Cada actualización de `main` publicará el sitio; GitHub muestra la dirección final en la ejecución del flujo. Después añade esa dirección a **Authentication → URL Configuration** en Supabase. La clave se inserta desde los secretos al publicar; `config.local.js` permanece fuera de Git.
+La carpeta ya contiene un flujo de publicación en `.github/workflows/static.yml`. Para activarlo, crea un repositorio GitHub y sube el contenido de esta carpeta a la rama `main`. En **Settings → Secrets and variables → Actions**, agrega `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. En **Settings → Pages**, elige **GitHub Actions** como fuente. Cada actualización de `main` publicará el sitio; GitHub muestra la dirección final en la ejecución del flujo. Después añade esa dirección a **Authentication → URL Configuration** en Supabase. La clave se inserta desde los secretos al publicar; `config.local.js` permanece fuera de Git.
 
 ## Preparar Supabase
 
